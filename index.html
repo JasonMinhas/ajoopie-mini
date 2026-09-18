@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>The Ajoopie Mini</title>
+<style>
+  :root{
+    --ink:#121212;
+    --grid-line:#000;
+    --cell-bg:#fff;
+    --cell-black:#121212;
+    --selected:#ffd400;
+    --word-highlight:#a7d8ff;
+    --accent:#1a73e8;
+    --gray:#767676;
+    --success:#1a8917;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+    background:#fff;
+    color:var(--ink);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:20px 12px calc(100px + env(safe-area-inset-bottom));
+    padding-left:calc(12px + env(safe-area-inset-left));
+    padding-right:calc(12px + env(safe-area-inset-right));
+    overscroll-behavior:none;
+    -webkit-text-size-adjust:100%;
+  }
+  .masthead{ text-align:center; margin-bottom:4px; }
+  .masthead .kicker{
+    font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--gray); font-weight:600;
+  }
+  .masthead h1{
+    font-family:Georgia,"Times New Roman",serif;
+    font-weight:700; font-size:30px; margin:2px 0 0; letter-spacing:-0.01em;
+  }
+  .subline{ font-size:12px; color:var(--gray); margin:6px 0 16px; text-align:center; }
+
+  .board-wrap{
+    width:100%;
+    max-width:560px;
+    overflow:auto;
+    border:2px solid var(--grid-line);
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-x pan-y;
+  }
+  .board{
+    display:grid;
+    gap:1px;
+    background:var(--grid-line);
+    width:max-content;
+  }
+  .cell{
+    position:relative;
+    background:var(--cell-bg);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    width:30px;
+    height:30px;
+  }
+  .cell.black{ background:var(--cell-black); }
+  .cell input{
+    width:100%; height:100%; border:none; text-align:center;
+    text-transform:uppercase; font-size:16px; font-weight:600;
+    background:transparent; color:var(--ink); caret-color:transparent; padding:0;
+    -webkit-appearance:none; border-radius:0;
+  }
+  .cell input:focus{ outline:none; }
+  .cell.selected{ background:var(--selected); }
+  .cell.selected input{ background:transparent; }
+  .cell.in-word{ background:var(--word-highlight); }
+  .cell.correct input{ color:var(--success); }
+  .cell-number{
+    position:absolute; top:1px; left:2px; font-size:7px; font-weight:700;
+    color:var(--gray); pointer-events:none;
+  }
+  .cell.pulse{ animation: pop 0.45s ease; }
+  @keyframes pop{
+    0%{ transform:scale(1); background:var(--cell-bg); }
+    35%{ transform:scale(1.15); background:#bdeecb; }
+    100%{ transform:scale(1); background:var(--cell-bg); }
+  }
+
+  .hint{ font-size:11px; color:var(--gray); margin-top:8px; text-align:center; }
+
+  /* sticky current-clue bar, NYT-app style */
+  .clue-bar{
+    position:sticky;
+    top:0;
+    z-index:5;
+    width:100%;
+    max-width:560px;
+    background:#f4f4f4;
+    border:1px solid #ddd;
+    border-radius:8px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:10px 10px;
+    margin:14px 0 4px;
+    font-size:13px;
+  }
+  .clue-bar button{
+    border:none; background:none; font-size:18px; font-weight:700;
+    color:var(--ink); cursor:pointer; padding:8px 12px; border-radius:8px;
+    min-width:40px; min-height:40px; touch-action:manipulation;
+  }
+  .clue-bar button:active{ background:#e2e2e2; }
+  .clue-bar .txt{ flex:1; }
+  .clue-bar .num{ font-weight:700; margin-right:4px; }
+  .clue-bar .dir{
+    font-size:10px; text-transform:uppercase; color:var(--gray); letter-spacing:0.06em; display:block;
+  }
+
+  .controls{ display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; justify-content:center; }
+  button.action{
+    font-family:inherit; font-size:14px; font-weight:600; padding:11px 18px;
+    border-radius:22px; border:1px solid var(--ink); background:#fff; color:var(--ink); cursor:pointer;
+    min-height:44px; touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+  }
+  button.action.primary{ background:var(--ink); color:#fff; }
+  button.action:active{ transform:scale(0.97); }
+
+  .clues{
+    width:100%; max-width:560px; margin-top:26px;
+    display:grid; grid-template-columns:1fr 1fr; gap:24px;
+  }
+  @media (max-width:480px){
+    .clues{ grid-template-columns:1fr; }
+  }
+  .clue-group h2{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--gray);
+    border-bottom:1px solid #e3e3e3; padding-bottom:4px; margin:0 0 8px;
+  }
+  .clue-row{
+    display:flex; gap:8px; font-size:13px; line-height:1.4; padding:5px 0;
+    cursor:pointer; border-radius:4px;
+  }
+  .clue-row.active{ background:var(--word-highlight); }
+  .clue-num{ font-weight:700; min-width:18px; }
+
+  .status{ min-height:20px; margin-top:14px; font-size:13px; font-weight:600; text-align:center; color:var(--gray); }
+
+  /* Completion modal */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(18,18,18,0.55);
+    display:none; align-items:center; justify-content:center; z-index:50;
+    padding:20px;
+  }
+  .modal-backdrop.show{ display:flex; }
+  .modal{
+    background:#fff; border-radius:16px; padding:32px 28px 28px;
+    max-width:360px; width:100%; text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,0.3);
+    transform:translateY(10px) scale(0.96);
+    opacity:0;
+    animation:modalIn 0.5s cubic-bezier(.2,.9,.3,1.2) forwards;
+  }
+  @keyframes modalIn{
+    to{ transform:translateY(0) scale(1); opacity:1; }
+  }
+  .modal .check{
+    width:56px; height:56px; margin:0 auto 14px; border-radius:50%;
+    background:var(--success); display:flex; align-items:center; justify-content:center;
+  }
+  .modal .check svg{ width:28px; height:28px; }
+  .modal .title{
+    font-family:Georgia,"Times New Roman",serif; font-weight:700; font-size:22px; margin-bottom:6px;
+  }
+  .modal .stats{
+    font-size:12px; color:var(--gray); margin-bottom:18px;
+  }
+  .modal .time-line{
+    font-size:14px; font-weight:600; color:var(--ink); margin:4px 0 6px; line-height:1.4;
+  }
+  .modal .reveal-eyebrow{
+    font-size:10px; text-transform:uppercase; letter-spacing:0.14em; color:var(--gray); margin-bottom:10px;
+  }
+  .modal .reveal-text{
+    font-family:Georgia,"Times New Roman",serif; font-style:italic; font-size:19px;
+    line-height:1.5; color:var(--ink); margin-bottom:22px;
+  }
+  .modal button.action{ width:100%; }
+  #revealTrigger{
+    transition: opacity 0.5s ease, transform 0.5s ease, max-height 0.5s ease, margin 0.5s ease, padding 0.5s ease;
+  }
+  #revealTrigger.fade-out{
+    opacity:0; transform:translateY(-4px); pointer-events:none;
+    max-height:0; margin:0; padding:0; border-width:0; overflow:hidden;
+  }
+  #revealContent{
+    opacity:0;
+    max-height:0;
+    overflow:hidden;
+    transition: opacity 1.4s ease, max-height 1.4s ease;
+  }
+  #revealContent.show{
+    opacity:1;
+    max-height:300px;
+  }
+
+  #confettiCanvas{
+    position:fixed; inset:0; pointer-events:none; z-index:60;
+  }
+</style>
+</head>
+<body>
+
+<div class="masthead">
+  <div class="kicker">Us, Solved</div>
+  <h1>The Ajoopie Mini</h1>
+</div>
+<div class="subline">You already know all the answers.</div>
+
+<div class="clue-bar" id="clueBar">
+  <button id="prevClue" aria-label="Previous clue">&#8249;</button>
+  <div class="txt">
+    <span class="dir" id="clueDir">ACROSS</span>
+    <span class="num" id="clueNum">1</span><span id="clueText">clue text</span>
+  </div>
+  <button id="nextClue" aria-label="Next clue">&#8250;</button>
+</div>
+
+<div class="board-wrap">
+  <div class="board" id="board"></div>
+</div>
+<div class="hint">Scroll to see the full grid &middot; tap the clue bar arrows to move between clues</div>
+
+<div class="controls">
+  <button class="action" id="checkBtn">Check</button>
+  <button class="action" id="clearBtn">Clear</button>
+  <button class="action primary" id="revealBtn">Reveal all</button>
+</div>
+
+<div class="status" id="status"></div>
+
+<div class="clues">
+  <div class="clue-group">
+    <h2>Across</h2>
+    <div id="acrossClues"></div>
+  </div>
+  <div class="clue-group">
+    <h2>Down</h2>
+    <div id="downClues"></div>
+  </div>
+</div>
+
+<canvas id="confettiCanvas"></canvas>
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <div class="check">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 12.5L9.5 18L20 6" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="title">You solved it!</div>
+    <div class="time-line" id="timeLine"></div>
+    <div class="stats" id="statsLine">18 answers &middot; 0 checks used</div>
+    <button class="action primary" id="revealTrigger">Click here to read what Jason has found</button>
+    <div id="revealContent">
+      <div class="reveal-eyebrow">Jason has found</div>
+      <div class="reveal-text">&ldquo;Someone that makes him want to stop looking.&rdquo;</div>
+      <button class="action primary" id="closeModal">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = {
+  "height": 13,
+  "width": 26,
+  "words": [
+    {"num":1,"dir":"across","row":0,"col":8,"answer":"DANCE","clue":"Your latest obsession"},
+    {"num":2,"dir":"down","row":0,"col":12,"answer":"ESCAPEROOM","clue":"Race against the clock, no real trains involved"},
+    {"num":3,"dir":"down","row":0,"col":17,"answer":"WEDDING","clue":"You're a professional plus-one for"},
+    {"num":4,"dir":"down","row":1,"col":14,"answer":"GREATHILL","clue":"Our picnic spot in Central Park"},
+    {"num":5,"dir":"down","row":1,"col":19,"answer":"HUFFLEPUFF","clue":"Best house"},
+    {"num":6,"dir":"down","row":1,"col":21,"answer":"RINGPOP","clue":"A delicious ring"},
+    {"num":7,"dir":"down","row":2,"col":9,"answer":"RECIPROCAL","clue":"Flip it mathematically"},
+    {"num":8,"dir":"across","row":2,"col":17,"answer":"DOUGIE","clue":"Jason's favorite dance move"},
+    {"num":9,"dir":"across","row":3,"col":8,"answer":"BEECAFE","clue":"Double date buzzing at this spot"},
+    {"num":10,"dir":"down","row":4,"col":23,"answer":"AJOOPIE","clue":"What I call you, and only you"},
+    {"num":11,"dir":"down","row":5,"col":6,"answer":"PINGPONG","clue":"Pooja humbles Jason"},
+    {"num":12,"dir":"across","row":5,"col":9,"answer":"INTENTIONAL","clue":"How this relationship feels"},
+    {"num":13,"dir":"across","row":7,"col":3,"answer":"SWINGERS","clue":"Date night for two, no actual swinging involved"},
+    {"num":13,"dir":"down","row":7,"col":3,"answer":"SALAD","clue":"We were twinning at Bryant Park with this meal"},
+    {"num":14,"dir":"across","row":7,"col":19,"answer":"POPCORN","clue":"Our second bar's iconic snack"},
+    {"num":15,"dir":"down","row":7,"col":25,"answer":"NASOJY","clue":"What you call me, and only me"},
+    {"num":16,"dir":"across","row":8,"col":11,"answer":"WORLD","clue":"What was \u201cending\u201d on our first date"},
+    {"num":17,"dir":"across","row":11,"col":0,"answer":"BOLD","clue":"What you were, ordering drinks before we'd even met"}
+  ]
+};
+
+const GRID_ROWS = DATA.height, GRID_COLS = DATA.width;
+const words = DATA.words;
+
+const layout = {};
+words.forEach(w=>{
+  const dr = w.dir==='across' ? 0 : 1;
+  const dc = w.dir==='across' ? 1 : 0;
+  for(let i=0;i<w.answer.length;i++){
+    const r = w.row+dr*i, c = w.col+dc*i;
+    layout[`${r},${c}`] = w.answer[i];
+  }
+});
+const numberMap = {};
+words.forEach(w=>{ numberMap[`${w.row},${w.col}`] = w.num; });
+
+const board = document.getElementById('board');
+board.style.gridTemplateColumns = `repeat(${GRID_COLS}, 30px)`;
+board.style.gridTemplateRows = `repeat(${GRID_ROWS}, 30px)`;
+
+const cellEls = {};
+const cellOrder = []; // reading order of white cells, for wave animation
+for(let r=0;r<GRID_ROWS;r++){
+  for(let c=0;c<GRID_COLS;c++){
+    const key = `${r},${c}`;
+    const div = document.createElement('div');
+    const isBlack = !(key in layout);
+    div.className = 'cell' + (isBlack ? ' black' : '');
+    if(!isBlack){
+      if(numberMap[key]){
+        const num = document.createElement('div');
+        num.className='cell-number';
+        num.textContent = numberMap[key];
+        div.appendChild(num);
+      }
+      const input = document.createElement('input');
+      input.maxLength = 1;
+      input.dataset.row = r;
+      input.dataset.col = c;
+      div.appendChild(input);
+      cellEls[key] = {div, input};
+      cellOrder.push(key);
+    }
+    board.appendChild(div);
+  }
+}
+
+let currentDir = 'across';
+let currentWordIdx = 0;
+let checkCount = 0;
+
+function wordCells(word){
+  const cells = [];
+  const dr = word.dir==='across'?0:1, dc = word.dir==='across'?1:0;
+  for(let i=0;i<word.answer.length;i++){
+    cells.push({r:word.row+dr*i, c:word.col+dc*i});
+  }
+  return cells;
+}
+
+function clearHighlights(){
+  Object.values(cellEls).forEach(({div})=>div.classList.remove('selected','in-word'));
+  document.querySelectorAll('.clue-row').forEach(el=>el.classList.remove('active'));
+}
+
+function updateClueBar(idx){
+  const w = words[idx];
+  document.getElementById('clueDir').textContent = w.dir.toUpperCase();
+  document.getElementById('clueNum').textContent = w.num + '.';
+  document.getElementById('clueText').textContent = w.clue;
+}
+
+function highlightWord(idx){
+  clearHighlights();
+  const word = words[idx];
+  wordCells(word).forEach(({r,c})=>{
+    const key=`${r},${c}`;
+    if(cellEls[key]) cellEls[key].div.classList.add('in-word');
+  });
+  const clueEl = document.querySelector(`.clue-row[data-idx="${idx}"]`);
+  if(clueEl) clueEl.classList.add('active');
+  updateClueBar(idx);
+}
+
+function focusCell(r,c){
+  const key=`${r},${c}`;
+  if(!cellEls[key]) return;
+  cellEls[key].input.focus();
+  cellEls[key].input.scrollIntoView({inline:'center', block:'nearest'});
+}
+
+function findWordAt(r,c,dir){
+  return words.findIndex(w=>{
+    if(w.dir!==dir) return false;
+    return wordCells(w).some(cell=>cell.r===r && cell.c===c);
+  });
+}
+
+Object.entries(cellEls).forEach(([key,{input}])=>{
+  input.addEventListener('focus', ()=>{
+    const [r,c] = key.split(',').map(Number);
+    let idx = findWordAt(r,c,currentDir);
+    if(idx===-1){
+      currentDir = currentDir==='across' ? 'down' : 'across';
+      idx = findWordAt(r,c,currentDir);
+    }
+    if(idx!==-1){ currentWordIdx = idx; highlightWord(idx); }
+  });
+  input.addEventListener('click', ()=>{
+    const [r,c] = key.split(',').map(Number);
+    const acrossIdx = findWordAt(r,c,'across');
+    const downIdx = findWordAt(r,c,'down');
+    if(acrossIdx!==-1 && downIdx!==-1){
+      currentDir = currentDir==='across' ? 'down' : 'across';
+    } else if(acrossIdx!==-1){ currentDir='across'; }
+    else if(downIdx!==-1){ currentDir='down'; }
+    const idx = findWordAt(r,c,currentDir);
+    if(idx!==-1){ currentWordIdx=idx; highlightWord(idx); }
+  });
+  input.addEventListener('input', (e)=>{
+    const val = e.target.value.toUpperCase().replace(/[^A-Z]/g,'');
+    e.target.value = val;
+    if(val) moveNext();
+    document.getElementById('status').textContent='';
+    maybeAutoCheck();
+  });
+  input.addEventListener('keydown', (e)=>{
+    const [r,c] = key.split(',').map(Number);
+    if(e.key==='Backspace' && !e.target.value){ movePrev(); }
+    else if(e.key==='ArrowRight'){ focusCell(r,c+1); }
+    else if(e.key==='ArrowLeft'){ focusCell(r,c-1); }
+    else if(e.key==='ArrowDown'){ focusCell(r+1,c); }
+    else if(e.key==='ArrowUp'){ focusCell(r-1,c); }
+  });
+});
+
+function moveNext(){
+  const word = words[currentWordIdx];
+  const cells = wordCells(word);
+  const activeIdx = cells.findIndex(({r,c})=>document.activeElement===cellEls[`${r},${c}`].input);
+  if(activeIdx>-1 && activeIdx<cells.length-1){
+    const next = cells[activeIdx+1];
+    focusCell(next.r,next.c);
+  }
+}
+function movePrev(){
+  const word = words[currentWordIdx];
+  const cells = wordCells(word);
+  const activeIdx = cells.findIndex(({r,c})=>document.activeElement===cellEls[`${r},${c}`].input);
+  if(activeIdx>0){
+    const prev = cells[activeIdx-1];
+    focusCell(prev.r,prev.c);
+  }
+}
+
+const acrossContainer = document.getElementById('acrossClues');
+const downContainer = document.getElementById('downClues');
+words.forEach((w, idx)=>{
+  const row = document.createElement('div');
+  row.className='clue-row';
+  row.dataset.idx = idx;
+  row.innerHTML = `<span class="clue-num">${w.num}</span><span>${w.clue}</span>`;
+  row.addEventListener('click', ()=>{
+    currentDir = w.dir;
+    currentWordIdx = idx;
+    highlightWord(idx);
+    focusCell(w.row, w.col);
+  });
+  (w.dir==='across' ? acrossContainer : downContainer).appendChild(row);
+});
+
+document.getElementById('prevClue').addEventListener('click', ()=>{
+  let idx = (currentWordIdx - 1 + words.length) % words.length;
+  currentWordIdx = idx;
+  currentDir = words[idx].dir;
+  highlightWord(idx);
+  focusCell(words[idx].row, words[idx].col);
+});
+document.getElementById('nextClue').addEventListener('click', ()=>{
+  let idx = (currentWordIdx + 1) % words.length;
+  currentWordIdx = idx;
+  currentDir = words[idx].dir;
+  highlightWord(idx);
+  focusCell(words[idx].row, words[idx].col);
+});
+
+highlightWord(0);
+focusCell(words[0].row, words[0].col);
+const startTime = Date.now();
+
+function isFullyCorrect(){
+  return words.every(w => wordCells(w).every(({r,c},i)=>{
+    const {input} = cellEls[`${r},${c}`];
+    return input.value === w.answer[i];
+  }));
+}
+
+function maybeAutoCheck(){
+  // silently check if complete; if so trigger celebration without a manual Check press
+  const allFilled = Object.values(cellEls).every(({input})=>input.value);
+  if(allFilled && isFullyCorrect()){
+    celebrate();
+  }
+}
+
+document.getElementById('checkBtn').addEventListener('click', ()=>{
+  checkCount++;
+  let allCorrect = true;
+  let anyFilled = false;
+  words.forEach(w=>{
+    wordCells(w).forEach(({r,c},i)=>{
+      const {div, input} = cellEls[`${r},${c}`];
+      div.classList.remove('correct');
+      if(input.value) anyFilled = true;
+      if(input.value === w.answer[i]) div.classList.add('correct');
+      else allCorrect = false;
+    });
+  });
+  const status = document.getElementById('status');
+  if(!anyFilled){
+    status.textContent = 'Fill in some letters first.';
+    return;
+  }
+  if(allCorrect){
+    celebrate();
+  } else {
+    status.textContent = 'Not quite \u2014 keep going.';
+  }
+});
+
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  Object.values(cellEls).forEach(({input,div})=>{
+    input.value='';
+    div.classList.remove('correct');
+  });
+  document.getElementById('status').textContent='';
+});
+
+document.getElementById('revealBtn').addEventListener('click', ()=>{
+  words.forEach(w=>{
+    wordCells(w).forEach(({r,c},i)=>{
+      cellEls[`${r},${c}`].input.value = w.answer[i];
+    });
+  });
+  document.getElementById('status').textContent='Revealed.';
+});
+
+let celebrated = false;
+function celebrate(){
+  if(celebrated) return;
+  celebrated = true;
+  // wave pulse across filled cells in reading order
+  cellOrder.forEach((key, i)=>{
+    const {div} = cellEls[key];
+    setTimeout(()=>{
+      div.classList.add('pulse');
+      setTimeout(()=>div.classList.remove('pulse'), 450);
+    }, i*14);
+  });
+  const waveDuration = cellOrder.length*14 + 500;
+  const extraPause = 1400; // let the moment breathe before the modal appears
+  const elapsedMs = Date.now() - startTime;
+  const totalSeconds = Math.max(1, Math.round(elapsedMs/1000));
+  const mins = Math.floor(totalSeconds/60);
+  const secs = totalSeconds%60;
+  const timeStr = mins>0 ? `${mins}:${secs.toString().padStart(2,'0')}` : `${secs} second${secs===1?'':'s'}`;
+
+  const cheesyLines = [
+    `Don't worry, you beat Akshay this time`,
+    `Faster than you'd think, slower than my heart rate when asking you to be my girlfriend`,
+    `You solved the Ajoopie Mini fast, but still slower than how fast I fell for you.`
+  ];
+  const cheesyLine = cheesyLines[Math.floor(Math.random()*cheesyLines.length)];
+
+  setTimeout(()=>{
+    document.getElementById('timeLine').textContent = cheesyLine;
+    document.getElementById('statsLine').textContent = `18 answers \u00b7 ${checkCount} check${checkCount===1?'':'s'} used`;
+    document.getElementById('modalBackdrop').classList.add('show');
+    launchConfetti();
+  }, waveDuration + extraPause);
+}
+
+document.getElementById('revealTrigger').addEventListener('click', ()=>{
+  const trigger = document.getElementById('revealTrigger');
+  trigger.classList.add('fade-out');
+  setTimeout(()=>{
+    document.getElementById('revealContent').classList.add('show');
+  }, 350);
+});
+
+document.getElementById('closeModal').addEventListener('click', ()=>{
+  document.getElementById('modalBackdrop').classList.remove('show');
+});
+
+// Confetti
+function launchConfetti(){
+  const canvas = document.getElementById('confettiCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const colors = ['#e63946','#f1a208','#2a9d8f','#457b9d','#e76f51','#ffd400'];
+  const pieces = [];
+  const count = 140;
+  for(let i=0;i<count;i++){
+    pieces.push({
+      x: Math.random()*canvas.width,
+      y: -20 - Math.random()*canvas.height*0.5,
+      w: 6+Math.random()*6,
+      h: 8+Math.random()*8,
+      color: colors[Math.floor(Math.random()*colors.length)],
+      speed: 2+Math.random()*3,
+      drift: -1.5+Math.random()*3,
+      rot: Math.random()*360,
+      rotSpeed: -8+Math.random()*16
+    });
+  }
+  let frame = 0;
+  const maxFrames = 220;
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{
+      p.y += p.speed;
+      p.x += p.drift;
+      p.rot += p.rotSpeed;
+      ctx.save();
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+      ctx.restore();
+    });
+    frame++;
+    if(frame<maxFrames){
+      requestAnimationFrame(draw);
+    } else {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+    }
+  }
+  draw();
+}
+window.addEventListener('resize', ()=>{
+  const canvas = document.getElementById('confettiCanvas');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+</script>
+
+</body>
+</html>
