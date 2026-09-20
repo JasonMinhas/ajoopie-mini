@@ -182,31 +182,7 @@
   .modal .time-line{
     font-size:14px; font-weight:600; color:var(--ink); margin:4px 0 6px; line-height:1.4;
   }
-  .modal .reveal-eyebrow{
-    font-size:10px; text-transform:uppercase; letter-spacing:0.14em; color:var(--gray); margin-bottom:10px;
-  }
-  .modal .reveal-text{
-    font-family:Georgia,"Times New Roman",serif; font-style:italic; font-size:19px;
-    line-height:1.5; color:var(--ink); margin-bottom:22px;
-  }
   .modal button.action{ width:100%; }
-  #revealTrigger{
-    transition: opacity 0.5s ease, transform 0.5s ease, max-height 0.5s ease, margin 0.5s ease, padding 0.5s ease;
-  }
-  #revealTrigger.fade-out{
-    opacity:0; transform:translateY(-4px); pointer-events:none;
-    max-height:0; margin:0; padding:0; border-width:0; overflow:hidden;
-  }
-  #revealContent{
-    opacity:0;
-    max-height:0;
-    overflow:hidden;
-    transition: opacity 1.4s ease, max-height 1.4s ease;
-  }
-  #revealContent.show{
-    opacity:1;
-    max-height:300px;
-  }
 
   #confettiCanvas{
     position:fixed; inset:0; pointer-events:none; z-index:60;
@@ -262,39 +238,33 @@
     </div>
     <div class="title">You solved it!</div>
     <div class="time-line" id="timeLine"></div>
-    <div class="stats" id="statsLine">18 answers &middot; 0 checks used</div>
-    <button class="action primary" id="revealTrigger">Click here to read what Jason has found</button>
-    <div id="revealContent">
-      <div class="reveal-eyebrow">Jason has found</div>
-      <div class="reveal-text">&ldquo;Someone that makes him want to stop looking.&rdquo;</div>
-      <button class="action primary" id="closeModal">Close</button>
-    </div>
+    <div class="stats" id="statsLine">17 answers &middot; 0 checks used</div>
+    <button class="action primary" id="closeModal">Close</button>
   </div>
 </div>
 
 <script>
 const DATA = {
-  "height": 13,
-  "width": 26,
+  "height": 19,
+  "width": 20,
   "words": [
-    {"num":1,"dir":"across","row":0,"col":8,"answer":"DANCE","clue":"Your latest obsession"},
-    {"num":2,"dir":"down","row":0,"col":12,"answer":"ESCAPEROOM","clue":"Race against the clock, no real trains involved"},
-    {"num":3,"dir":"down","row":0,"col":17,"answer":"WEDDING","clue":"You're a professional plus-one for"},
-    {"num":4,"dir":"down","row":1,"col":14,"answer":"GREATHILL","clue":"Our picnic spot in Central Park"},
-    {"num":5,"dir":"down","row":1,"col":19,"answer":"HUFFLEPUFF","clue":"Best house"},
-    {"num":6,"dir":"down","row":1,"col":21,"answer":"RINGPOP","clue":"A delicious ring"},
-    {"num":7,"dir":"down","row":2,"col":9,"answer":"RECIPROCAL","clue":"Flip it mathematically"},
-    {"num":8,"dir":"across","row":2,"col":17,"answer":"DOUGIE","clue":"Jason's favorite dance move"},
-    {"num":9,"dir":"across","row":3,"col":8,"answer":"BEECAFE","clue":"Double date buzzing at this spot"},
-    {"num":10,"dir":"down","row":4,"col":23,"answer":"AJOOPIE","clue":"What I call you, and only you"},
-    {"num":11,"dir":"down","row":5,"col":6,"answer":"PINGPONG","clue":"Pooja humbles Jason"},
-    {"num":12,"dir":"across","row":5,"col":9,"answer":"INTENTIONAL","clue":"How this relationship feels"},
-    {"num":13,"dir":"across","row":7,"col":3,"answer":"SWINGERS","clue":"Date night for two, no actual swinging involved"},
-    {"num":13,"dir":"down","row":7,"col":3,"answer":"SALAD","clue":"We were twinning at Bryant Park with this meal"},
-    {"num":14,"dir":"across","row":7,"col":19,"answer":"POPCORN","clue":"Our second bar's iconic snack"},
-    {"num":15,"dir":"down","row":7,"col":25,"answer":"NASOJY","clue":"What you call me, and only me"},
-    {"num":16,"dir":"across","row":8,"col":11,"answer":"WORLD","clue":"What was \u201cending\u201d on our first date"},
-    {"num":17,"dir":"across","row":11,"col":0,"answer":"BOLD","clue":"What you were, ordering drinks before we'd even met"}
+    {"num":1,"dir":"down","row":0,"col":5,"answer":"WEDDING","clue":"You're a professional plus-one for"},
+    {"num":2,"dir":"across","row":2,"col":7,"answer":"NASOJY","clue":"What you call me, and only me"},
+    {"num":3,"dir":"down","row":2,"col":8,"answer":"AJOOPIE","clue":"What I call you, and only you"},
+    {"num":4,"dir":"across","row":3,"col":1,"answer":"WORLD","clue":"What was \u201cending\u201d on our first date"},
+    {"num":5,"dir":"across","row":6,"col":2,"answer":"RINGPOP","clue":"A delicious sugary ring"},
+    {"num":6,"dir":"down","row":6,"col":6,"answer":"PINGPONG","clue":"Pooja humbles Jason"},
+    {"num":7,"dir":"down","row":7,"col":10,"answer":"ESCAPEROOM","clue":"Race against the clock, no real trains involved"},
+    {"num":8,"dir":"across","row":8,"col":3,"answer":"SWINGERS","clue":"Date night for two, actual swinging is optional"},
+    {"num":9,"dir":"down","row":8,"col":13,"answer":"INTENTIONAL","clue":"How this relationship feels"},
+    {"num":10,"dir":"down","row":9,"col":17,"answer":"HUFFLEPUFF","clue":"Soon to be best Hogwarts house"},
+    {"num":11,"dir":"across","row":10,"col":2,"answer":"RECIPROCAL","clue":"Flip it mathematically"},
+    {"num":12,"dir":"down","row":11,"col":1,"answer":"DOUGIE","clue":"Jason's favorite dance move"},
+    {"num":13,"dir":"across","row":11,"col":12,"answer":"BEECAFE","clue":"Where Varun and Nirali watched us be cute"},
+    {"num":14,"dir":"across","row":12,"col":0,"answer":"POPCORN","clue":"The second bar's iconic snack but they forgot"},
+    {"num":15,"dir":"across","row":13,"col":9,"answer":"GREATHILL","clue":"Our picnic spot in Central Park"},
+    {"num":16,"dir":"across","row":15,"col":8,"answer":"CHOREOGRAPHY","clue":"Your latest obsession"},
+    {"num":17,"dir":"across","row":18,"col":11,"answer":"SALAD","clue":"We were twinning at Bryant Park with this meal"}
   ]
 };
 
@@ -573,19 +543,11 @@ function celebrate(){
 
   setTimeout(()=>{
     document.getElementById('timeLine').textContent = cheesyLine;
-    document.getElementById('statsLine').textContent = `18 answers \u00b7 ${checkCount} check${checkCount===1?'':'s'} used`;
+    document.getElementById('statsLine').textContent = `17 answers \u00b7 ${checkCount} check${checkCount===1?'':'s'} used`;
     document.getElementById('modalBackdrop').classList.add('show');
     launchConfetti();
   }, waveDuration + extraPause);
 }
-
-document.getElementById('revealTrigger').addEventListener('click', ()=>{
-  const trigger = document.getElementById('revealTrigger');
-  trigger.classList.add('fade-out');
-  setTimeout(()=>{
-    document.getElementById('revealContent').classList.add('show');
-  }, 350);
-});
 
 document.getElementById('closeModal').addEventListener('click', ()=>{
   document.getElementById('modalBackdrop').classList.remove('show');
